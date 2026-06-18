@@ -3,13 +3,15 @@
 
 设计依据见同目录 `数据库治理方案.md`。只读源库，不改动原始数据。
 
-产出 4 张表：
+产出 5 张表（4 张业务表 + 构建内部 `build_meta`）：
   contacts            联系人（好友/群/公众号/企业微信/群成员）
   chatrooms           群聊专属信息
   chatroom_members    群—成员关系（直接用 username）
   messages            全部聊天记录（合并所有分表，含媒体外链/引用）
+  build_meta          增量水位（仅构建脚本使用，下游可忽略）
 
 用法：
+  cp accounts.local.example.py accounts.local.py   # 首次：填入本地 wxid 与解密目录
   python3 build_governed_db.py [--limit-chats N] [--out path]
   python3 build_governed_db.py --staging-tmp   # 先写 /tmp，完成再 mv 到 --out
   python3 build_governed_db.py --incremental   # 增量：仅追加新消息，保留已有 governed.db

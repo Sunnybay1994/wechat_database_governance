@@ -13,7 +13,7 @@
 - **输入（v2）**：两个解密库（只读）：
   - `wechat-decrypt-personal/decrypted/` — 个人号 → **`account='personal'`**
   - `wechat-decrypt-work/decrypted/` — 工作号 → **`account='work'`**
-- **输出**：`output/governed.db` — 4 张表，**两号合并**，约 **310 万条**消息。
+- **输出**：`output/governed.db` — **4 张业务表** + 构建内部 `build_meta`；双号合并后 messages **约 238 万行**（跨分片去重后；源库扫描约 310 万行，其余为 `INSERT OR IGNORE` 跳过）。
 - **边界**：本模块只做「解密库 → 治理库」。不解密、不训练。
 
 > ⚠️ **schema**：v2（双账号 + `account` 列）已落地。下游按 `docs/下游迁移指南.md` 改。
@@ -70,7 +70,7 @@ python3 build_governed_db.py --incremental --reset-meta     # 重扫源表、靠
 
 | 模式 | 说明 |
 |------|------|
-| 默认（全量） | 删除旧库，DROP 重建 4 表 + `build_meta` |
+| 默认（全量） | 删除旧库，DROP 重建 4 业务表 + `build_meta` |
 | `--incremental` | 保留已有库，维表全量刷新；messages 按 `build_meta` 水位只读 `local_id` 更大的行 |
 | `--incremental --reset-meta` | 忽略水位，重扫全部 `Msg_*` 表，`INSERT OR IGNORE` 去重 |
 | `--staging-tmp` | 在 Linux `/tmp` 构建，完成后 mv 到 `--out`；可与增量联用（先复制现有库到 tmp） |
@@ -117,13 +117,13 @@ ORDER BY timestamp;
 3. **`local_id` 仅在 `(account, chat_username)` 内有效** — 增量去重键；跨分片排序仍用 `timestamp`。
 4. **不存原始媒体** — `media_ref` + 按 `account` 回查对应 `decrypted/message/`。
 5. **公众号推送**（`biz_message_*.db`）不纳入。
-6. **隐私** — 真实聊天数据；勿提交 `.db`、勿外传。
+6. **隐私** — 真实 wxid/路径放 `accounts.local.py`（gitignore）；公开库仅用占位符；勿提交 `.db`。
 
 ---
 
 ## 6. 二次开发
 
 - **改治理规则**：`build_governed_db.py`；改 schema 后须**全量**重跑；仅规则微调可试 `--incremental --reset-meta`。
-- **构建性能**：脚本内已做 text/system 快路径、XML regex 预编译、输出库 WAL；**不改 schema、下游零改动**。
+- **构建性能**：text/system 快路径、XML regex 预编译、输出库 WAL；日志含「去重跳过 N 条」；详见 `docs/数据库开发小技巧.md` §11–§12。
 - **下游改 digital_twin**：按 **`docs/下游迁移指南.md` §5** 清单加 `account` 过滤；个人分身默认 `account='personal'`。
-- **验证**：`notebooks/explore_wechat_db.ipynb` §7（v2 落地后需同步 notebook）。
+- **验证**：`notebooks/explore_wechat_db.ipynb` §7（含 `account` 维度与 `build_meta` 行数）。
