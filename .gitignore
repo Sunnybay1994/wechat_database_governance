@@ -1,0 +1,20 @@
+# 本地配置（含真实 wxid，勿提交）
+accounts.local.py
+
+# 产出库（大文件，可由 build_governed_db.py 重新生成）
+output/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store

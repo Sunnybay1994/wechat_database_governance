@@ -1,0 +1,7 @@
+# 运行 build_governed_db.py 所需
+zstandard>=0.22
+
+# 运行探查 notebook 所需（可选）
+pandas>=2.0
+jupyter>=1.0
+ipykernel>=6.0
